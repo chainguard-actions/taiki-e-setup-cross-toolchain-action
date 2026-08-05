@@ -1,1 +1,15 @@
-# taiki-e-setup-cross-toolchain-action
+# taiki-e/setup-cross-toolchain-action
+
+GitHub Action for setup toolchains for cross compilation and cross testing for Rust
+
+Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at [https://github.com/taiki-e/setup-cross-toolchain-action](https://github.com/taiki-e/setup-cross-toolchain-action).
+
+## Versions
+
+| Version | Tag | Upstream commit |
+|---------|-----|-----------------|
+| v1.40.0 | [`v1.40.0`](https://github.com/chainguard-actions/taiki-e-setup-cross-toolchain-action/tree/v1.40.0) | [`74847e5`](https://github.com/taiki-e/setup-cross-toolchain-action/commit/74847e552ab5bf79fa4393ed975e297ea57d53fa) |
+
+## Privacy
+
+This Action contacts Chainguard's licensing server to verify authorization. Connection metadata (IP address, GitHub repository identifier, timestamp, and any metadata encoded in the auth token) is transmitted to Chainguard, Inc. even if authorization is denied in accordance with our [Privacy Notice](https://www.chainguard.dev/legal/privacy-notice)
