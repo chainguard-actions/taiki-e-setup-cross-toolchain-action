@@ -1,0 +1,53 @@
+name: Test host-tuple special target
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install Rust toolchain
+        run: |
+          set -euo pipefail
+          # Install rustup/rustc if not already present
+          if ! command -v rustc > /dev/null 2>&1; then
+            if command -v rustup > /dev/null 2>&1; then
+              rustup toolchain install stable --no-self-update
+              rustup default stable
+            else
+              curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+                | sh -s -- -y --default-toolchain stable --no-modify-path
+            fi
+          fi
+          # Always ensure cargo bin is on PATH for subsequent steps
+          CARGO_BIN="${CARGO_HOME:-$HOME/.cargo}/bin"
+          if [ -d "$CARGO_BIN" ]; then
+            echo "$CARGO_BIN" >> "$GITHUB_PATH"
+          fi
+          # Verify rustc is available in this step
+          export PATH="${CARGO_BIN}:$PATH"
+          rustc --version
+
+      - id: action
+        uses: .
+        with:
+          target: host-tuple
+
+      - name: Assert CARGO_BUILD_TARGET is set to a real host triple
+        env:
+          CARGO_BUILD_TARGET: ${{ env.CARGO_BUILD_TARGET }}
+        run: |
+          echo "CARGO_BUILD_TARGET: $CARGO_BUILD_TARGET"
+          if [ -z "$CARGO_BUILD_TARGET" ]; then
+            echo "FAIL: expected CARGO_BUILD_TARGET to be set"
+            exit 1
+          fi
+          # host-tuple on ubuntu-latest should resolve to x86_64-unknown-linux-gnu
+          # or similar linux-gnu triple
+          if echo "$CARGO_BUILD_TARGET" | grep -qE 'linux-gnu'; then
+            echo "PASS: CARGO_BUILD_TARGET='$CARGO_BUILD_TARGET' is a linux-gnu triple as expected"
+          else
+            echo "FAIL: expected a linux-gnu triple, got '$CARGO_BUILD_TARGET'"
+            exit 1
+          fi

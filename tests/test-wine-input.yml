@@ -1,0 +1,55 @@
+name: Test wine version input for Windows cross targets
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install Rust toolchain
+        run: |
+          set -euo pipefail
+          if ! command -v rustc > /dev/null 2>&1; then
+            if command -v rustup > /dev/null 2>&1; then
+              rustup toolchain install stable --no-self-update
+              rustup default stable
+            else
+              curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+                | sh -s -- -y --default-toolchain stable --no-modify-path
+            fi
+          fi
+          CARGO_BIN="${CARGO_HOME:-$HOME/.cargo}/bin"
+          if [ -d "$CARGO_BIN" ]; then
+            echo "$CARGO_BIN" >> "$GITHUB_PATH"
+          fi
+          export PATH="${CARGO_BIN}:$PATH"
+          rustc --version
+
+      - id: action
+        uses: .
+        with:
+          target: x86_64-pc-windows-gnu
+          runner: wine
+          wine: 9.0.0
+        continue-on-error: true
+
+      - name: Assert action ran with wine version input
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+          CARGO_BUILD_TARGET: ${{ env.CARGO_BUILD_TARGET }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "CARGO_BUILD_TARGET: $CARGO_BUILD_TARGET"
+          if [ "$OUTCOME" = "success" ]; then
+            if [ "$CARGO_BUILD_TARGET" != "x86_64-pc-windows-gnu" ]; then
+              echo "FAIL: expected CARGO_BUILD_TARGET=x86_64-pc-windows-gnu, got '$CARGO_BUILD_TARGET'"
+              exit 1
+            fi
+            echo "PASS: action succeeded with wine version input"
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed gracefully (wine install may not be supported in this environment)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi

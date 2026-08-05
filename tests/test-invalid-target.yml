@@ -1,0 +1,51 @@
+name: Test invalid target error handling
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install Rust toolchain
+        run: |
+          set -euo pipefail
+          # Install rustup/rustc if not already present
+          if ! command -v rustc > /dev/null 2>&1; then
+            if command -v rustup > /dev/null 2>&1; then
+              rustup toolchain install stable --no-self-update
+              rustup default stable
+            else
+              curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+                | sh -s -- -y --default-toolchain stable --no-modify-path
+            fi
+          fi
+          # Always ensure cargo bin is on PATH for subsequent steps
+          CARGO_BIN="${CARGO_HOME:-$HOME/.cargo}/bin"
+          if [ -d "$CARGO_BIN" ]; then
+            echo "$CARGO_BIN" >> "$GITHUB_PATH"
+          fi
+          # Verify rustc is available in this step
+          export PATH="${CARGO_BIN}:$PATH"
+          rustc --version
+
+      - id: action
+        uses: .
+        with:
+          target: not-a-real-target-triple
+        continue-on-error: true
+
+      - name: Assert action failed for invalid target
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          if [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action correctly failed for invalid target"
+          elif [ "$OUTCOME" = "success" ]; then
+            echo "FAIL: action should have failed for invalid target 'not-a-real-target-triple'"
+            exit 1
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi
