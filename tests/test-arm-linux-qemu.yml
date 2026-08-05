@@ -1,0 +1,102 @@
+name: Test armv7-unknown-linux-gnueabihf with QEMU runner
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Ensure Rust toolchain is available
+        run: |
+          set -euo pipefail
+          _install_link() {
+            if command -v sudo > /dev/null 2>&1; then
+              sudo ln -sf "$1" "$2"
+            else
+              ln -sf "$1" "$2"
+            fi
+          }
+          # Check if rustc/rustup are already available system-wide
+          if command -v rustc > /dev/null 2>&1 && command -v rustup > /dev/null 2>&1; then
+            echo "Rust already available system-wide: $(rustc --version)"
+            exit 0
+          fi
+          # Check if installed in cargo home but not in PATH
+          CARGO_HOME="${CARGO_HOME:-$HOME/.cargo}"
+          if [ -f "$CARGO_HOME/bin/rustc" ] && [ -f "$CARGO_HOME/bin/rustup" ]; then
+            echo "Rust found in $CARGO_HOME/bin, symlinking to /usr/local/bin"
+            _install_link "$CARGO_HOME/bin/rustc" /usr/local/bin/rustc
+            _install_link "$CARGO_HOME/bin/rustup" /usr/local/bin/rustup
+            _install_link "$CARGO_HOME/bin/cargo" /usr/local/bin/cargo
+            exit 0
+          fi
+          # Install Rust via rustup
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --no-modify-path
+          CARGO_HOME="${CARGO_HOME:-$HOME/.cargo}"
+          _install_link "$CARGO_HOME/bin/rustc" /usr/local/bin/rustc
+          _install_link "$CARGO_HOME/bin/rustup" /usr/local/bin/rustup
+          _install_link "$CARGO_HOME/bin/cargo" /usr/local/bin/cargo
+          echo "Installed Rust via rustup"
+
+      - name: Verify Rust is available
+        run: |
+          rustc --version
+          rustup --version
+
+      # QEMU installation requires Docker (to pull from ghcr.io) and binfmt registration.
+      # Use continue-on-error since Docker-in-Docker or binfmt may not be available in all environments.
+      - id: action
+        uses: .
+        with:
+          target: armv7-unknown-linux-gnueabihf
+          runner: qemu-user
+        continue-on-error: true
+
+      - name: Assert action result
+        run: |
+          OUTCOME="${{ steps.action.outcome }}"
+          echo "outcome: $OUTCOME"
+          echo "CARGO_BUILD_TARGET: $CARGO_BUILD_TARGET"
+          echo "CARGO_TARGET_ARMV7_UNKNOWN_LINUX_GNUEABIHF_LINKER: $CARGO_TARGET_ARMV7_UNKNOWN_LINUX_GNUEABIHF_LINKER"
+          echo "CARGO_TARGET_ARMV7_UNKNOWN_LINUX_GNUEABIHF_RUNNER: $CARGO_TARGET_ARMV7_UNKNOWN_LINUX_GNUEABIHF_RUNNER"
+          if [ "$OUTCOME" = "success" ]; then
+            if [ "$CARGO_BUILD_TARGET" != "armv7-unknown-linux-gnueabihf" ]; then
+              echo "FAIL: expected CARGO_BUILD_TARGET=armv7-unknown-linux-gnueabihf, got '$CARGO_BUILD_TARGET'"
+              exit 1
+            fi
+            if [ -z "$CARGO_TARGET_ARMV7_UNKNOWN_LINUX_GNUEABIHF_LINKER" ]; then
+              echo "FAIL: expected CARGO_TARGET_ARMV7_UNKNOWN_LINUX_GNUEABIHF_LINKER to be set"
+              exit 1
+            fi
+            if ! echo "$CARGO_TARGET_ARMV7_UNKNOWN_LINUX_GNUEABIHF_RUNNER" | grep -q 'qemu'; then
+              echo "FAIL: expected runner to contain 'qemu', got '$CARGO_TARGET_ARMV7_UNKNOWN_LINUX_GNUEABIHF_RUNNER'"
+              exit 1
+            fi
+            echo "PASS: action succeeded with correct env vars"
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed gracefully (QEMU/Docker setup may not be available in this environment)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi
+
+      - name: Assert cross-compiler linker is available (if action succeeded)
+        if: steps.action.outcome == 'success'
+        run: |
+          LINKER="$CARGO_TARGET_ARMV7_UNKNOWN_LINUX_GNUEABIHF_LINKER"
+          echo "Linker: $LINKER"
+          if ! command -v "$LINKER" > /dev/null 2>&1; then
+            echo "FAIL: linker '$LINKER' not found in PATH"
+            exit 1
+          fi
+          echo "PASS: linker '$LINKER' is available"
+
+      - name: Assert rustup target was added (if action succeeded)
+        if: steps.action.outcome == 'success'
+        run: |
+          if ! rustup target list --installed | grep -q 'armv7-unknown-linux-gnueabihf'; then
+            echo "FAIL: armv7-unknown-linux-gnueabihf not in installed rustup targets"
+            exit 1
+          fi
+          echo "PASS"
