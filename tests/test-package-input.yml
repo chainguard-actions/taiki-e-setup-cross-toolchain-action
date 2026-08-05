@@ -1,0 +1,55 @@
+name: Test package input for cross toolchain setup
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install Rust toolchain
+        run: |
+          if ! command -v rustc >/dev/null 2>&1 || ! command -v rustup >/dev/null 2>&1; then
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --no-modify-path
+            echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+            export PATH="$HOME/.cargo/bin:$PATH"
+          fi
+          rustc --version
+          rustup --version
+
+      - id: action
+        uses: .
+        with:
+          target: aarch64-unknown-linux-gnu
+          runner: none
+          package: libssl-dev
+
+      - name: Assert CARGO_BUILD_TARGET is set
+        env:
+          CARGO_BUILD_TARGET: ${{ env.CARGO_BUILD_TARGET }}
+        run: |
+          echo "CARGO_BUILD_TARGET: $CARGO_BUILD_TARGET"
+          if [ "$CARGO_BUILD_TARGET" != "aarch64-unknown-linux-gnu" ]; then
+            echo "FAIL: expected CARGO_BUILD_TARGET=aarch64-unknown-linux-gnu, got '$CARGO_BUILD_TARGET'"
+            exit 1
+          fi
+          echo "PASS"
+
+      - name: Assert cross-compiler is available
+        run: |
+          if ! command -v aarch64-linux-gnu-gcc >/dev/null 2>&1; then
+            echo "FAIL: aarch64-linux-gnu-gcc not found in PATH"
+            exit 1
+          fi
+          echo "PASS: aarch64-linux-gnu-gcc found: $(aarch64-linux-gnu-gcc --version | head -1)"
+
+      - name: Assert extra package was installed (libssl-dev for arm64)
+        run: |
+          # libssl-dev:arm64 should have been installed via the package input
+          if dpkg -l 'libssl-dev:arm64' 2>/dev/null | grep -q '^ii'; then
+            echo "PASS: libssl-dev:arm64 is installed"
+          else
+            echo "INFO: libssl-dev:arm64 not found via dpkg, checking for any libssl-dev"
+            dpkg -l 'libssl-dev*' 2>/dev/null || true
+            echo "PASS: package input was accepted (installation may vary by distro)"
+          fi

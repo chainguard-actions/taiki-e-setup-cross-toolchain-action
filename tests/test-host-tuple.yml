@@ -1,0 +1,43 @@
+name: Test host-tuple special target
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install Rust toolchain
+        run: |
+          if ! command -v rustc >/dev/null 2>&1 || ! command -v rustup >/dev/null 2>&1; then
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --no-modify-path
+            echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+            export PATH="$HOME/.cargo/bin:$PATH"
+          fi
+          rustc --version
+          rustup --version
+
+      - name: Get host triple
+        id: host
+        run: |
+          HOST=$(rustc -vV | grep -E '^host:' | cut -d' ' -f2)
+          echo "triple=$HOST" >> "$GITHUB_OUTPUT"
+          echo "Host triple: $HOST"
+
+      - id: action
+        uses: .
+        with:
+          target: host-tuple
+
+      - name: Assert CARGO_BUILD_TARGET matches host triple
+        env:
+          CARGO_BUILD_TARGET: ${{ env.CARGO_BUILD_TARGET }}
+          HOST_TRIPLE: ${{ steps.host.outputs.triple }}
+        run: |
+          echo "CARGO_BUILD_TARGET: $CARGO_BUILD_TARGET"
+          echo "HOST_TRIPLE: $HOST_TRIPLE"
+          if [ "$CARGO_BUILD_TARGET" != "$HOST_TRIPLE" ]; then
+            echo "FAIL: expected CARGO_BUILD_TARGET='$HOST_TRIPLE', got '$CARGO_BUILD_TARGET'"
+            exit 1
+          fi
+          echo "PASS: CARGO_BUILD_TARGET matches host triple"

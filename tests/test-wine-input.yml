@@ -1,0 +1,63 @@
+name: Test wine input for cross toolchain setup
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install Rust toolchain
+        run: |
+          if ! command -v rustc >/dev/null 2>&1 || ! command -v rustup >/dev/null 2>&1; then
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --no-modify-path
+            echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+            export PATH="$HOME/.cargo/bin:$PATH"
+          fi
+          rustc --version
+          rustup --version
+
+      - id: action
+        uses: .
+        with:
+          target: x86_64-pc-windows-gnu
+          runner: wine
+          wine: "10.0.0.0"
+
+      - name: Assert CARGO_BUILD_TARGET is set
+        env:
+          CARGO_BUILD_TARGET: ${{ env.CARGO_BUILD_TARGET }}
+        run: |
+          echo "CARGO_BUILD_TARGET: $CARGO_BUILD_TARGET"
+          if [ "$CARGO_BUILD_TARGET" != "x86_64-pc-windows-gnu" ]; then
+            echo "FAIL: expected CARGO_BUILD_TARGET=x86_64-pc-windows-gnu, got '$CARGO_BUILD_TARGET'"
+            exit 1
+          fi
+          echo "PASS"
+
+      - name: Assert CARGO_TARGET_X86_64_PC_WINDOWS_GNU_RUNNER is set
+        env:
+          RUNNER_VAR: ${{ env.CARGO_TARGET_X86_64_PC_WINDOWS_GNU_RUNNER }}
+        run: |
+          echo "CARGO_TARGET_X86_64_PC_WINDOWS_GNU_RUNNER: $RUNNER_VAR"
+          if [ -z "$RUNNER_VAR" ]; then
+            echo "FAIL: expected CARGO_TARGET_X86_64_PC_WINDOWS_GNU_RUNNER to be set"
+            exit 1
+          fi
+          echo "PASS: runner is '$RUNNER_VAR'"
+
+      - name: Assert wine is available
+        run: |
+          if ! command -v wine >/dev/null 2>&1; then
+            echo "FAIL: wine not found in PATH"
+            exit 1
+          fi
+          echo "PASS: wine found: $(wine --version)"
+
+      - name: Assert MinGW cross-compiler is available
+        run: |
+          if ! command -v x86_64-w64-mingw32-gcc-posix >/dev/null 2>&1; then
+            echo "FAIL: x86_64-w64-mingw32-gcc-posix not found in PATH"
+            exit 1
+          fi
+          echo "PASS: MinGW cross-compiler found: $(x86_64-w64-mingw32-gcc-posix --version | head -1)"
