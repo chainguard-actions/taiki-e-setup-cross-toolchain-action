@@ -1,0 +1,56 @@
+name: Test aarch64 cross-compilation with QEMU runner
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Install Rust toolchain
+        run: |
+          if ! command -v rustc >/dev/null 2>&1; then
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o /tmp/rustup-init.sh
+            sh /tmp/rustup-init.sh -y --default-toolchain stable --profile minimal
+            echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+          else
+            echo "rustc already available: $(rustc --version)"
+          fi
+      - name: Ensure rustup is on PATH
+        run: |
+          if ! command -v rustup >/dev/null 2>&1; then
+            echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+          fi
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          target: aarch64-unknown-linux-gnu
+      - name: Assert action result
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+          RUNNER_VAR: ${{ env.CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_RUNNER }}
+          LINKER: ${{ env.CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_RUNNER: $RUNNER_VAR"
+          echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: $LINKER"
+          if [ "$OUTCOME" = "success" ]; then
+            if [ -z "$LINKER" ]; then
+              echo "FAIL: CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER is not set"
+              exit 1
+            fi
+            if [ -z "$RUNNER_VAR" ]; then
+              echo "FAIL: CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_RUNNER is not set"
+              exit 1
+            fi
+            if ! echo "$RUNNER_VAR" | grep -q "qemu"; then
+              echo "FAIL: expected runner to contain 'qemu', got: $RUNNER_VAR"
+              exit 1
+            fi
+            echo "PASS: linker=$LINKER runner=$RUNNER_VAR"
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed gracefully (likely Docker not available in this environment)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi

@@ -1,0 +1,39 @@
+name: Test host-tuple special target
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Install Rust toolchain
+        run: |
+          if ! command -v rustc >/dev/null 2>&1; then
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o /tmp/rustup-init.sh
+            sh /tmp/rustup-init.sh -y --default-toolchain stable --profile minimal
+          fi
+          # Ensure cargo bin is on PATH for subsequent steps
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+      - id: action
+        uses: .
+        with:
+          target: host-tuple
+      - name: Assert CARGO_BUILD_TARGET is set
+        env:
+          CARGO_BUILD_TARGET: ${{ env.CARGO_BUILD_TARGET }}
+        run: |
+          echo "CARGO_BUILD_TARGET: $CARGO_BUILD_TARGET"
+          if [ -z "$CARGO_BUILD_TARGET" ]; then
+            echo "FAIL: CARGO_BUILD_TARGET is not set"
+            exit 1
+          fi
+          echo "PASS: CARGO_BUILD_TARGET=$CARGO_BUILD_TARGET"
+      - name: Assert host target is available in rustup
+        run: |
+          HOST=$(rustc -vV | grep -E '^host:' | cut -d' ' -f2)
+          echo "Host target: $HOST"
+          if [ -z "$HOST" ]; then
+            echo "FAIL: could not determine host target"
+            exit 1
+          fi
+          echo "PASS: host target is $HOST"
