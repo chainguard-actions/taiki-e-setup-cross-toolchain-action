@@ -1,0 +1,47 @@
+name: Test valgrind version input for cross toolchain setup
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install Rust toolchain
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --no-modify-path
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+
+      - id: action
+        uses: .
+        with:
+          target: x86_64-unknown-linux-gnu
+          runner: valgrind
+          valgrind: "3.23.0"
+
+      - name: Assert CARGO_BUILD_TARGET is set
+        run: |
+          echo "CARGO_BUILD_TARGET: $CARGO_BUILD_TARGET"
+          if [ "$CARGO_BUILD_TARGET" != "x86_64-unknown-linux-gnu" ]; then
+            echo "FAIL: expected CARGO_BUILD_TARGET=x86_64-unknown-linux-gnu, got '$CARGO_BUILD_TARGET'"
+            exit 1
+          fi
+          echo "PASS"
+
+      - name: Assert valgrind runner is configured
+        run: |
+          echo "CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER: $CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER"
+          if [ -z "$CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER" ]; then
+            echo "FAIL: expected CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER to be set"
+            exit 1
+          fi
+          echo "PASS"
+
+      - name: Assert valgrind is available
+        run: |
+          if ! command -v valgrind > /dev/null 2>&1; then
+            echo "FAIL: valgrind not found in PATH"
+            exit 1
+          fi
+          echo "valgrind version: $(valgrind --version)"
+          echo "PASS"

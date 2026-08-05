@@ -1,0 +1,48 @@
+name: Test x86_64-pc-windows-gnu cross toolchain setup
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install Rust toolchain
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --no-modify-path
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+
+      - id: action
+        uses: .
+        with:
+          target: x86_64-pc-windows-gnu
+          runner: none
+
+      - name: Assert CARGO_BUILD_TARGET is set
+        run: |
+          echo "CARGO_BUILD_TARGET: $CARGO_BUILD_TARGET"
+          if [ "$CARGO_BUILD_TARGET" != "x86_64-pc-windows-gnu" ]; then
+            echo "FAIL: expected CARGO_BUILD_TARGET=x86_64-pc-windows-gnu, got '$CARGO_BUILD_TARGET'"
+            exit 1
+          fi
+          echo "PASS"
+
+      - name: Assert cross-compiler linker env var is set
+        run: |
+          echo "CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER: $CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER"
+          if [ -z "$CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER" ]; then
+            echo "FAIL: expected CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER to be set"
+            exit 1
+          fi
+          echo "PASS"
+
+      - name: Assert MinGW cross-compiler is available
+        run: |
+          LINKER="$CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER"
+          echo "Checking linker: $LINKER"
+          if ! command -v "$LINKER" > /dev/null 2>&1; then
+            echo "FAIL: linker '$LINKER' not found in PATH"
+            exit 1
+          fi
+          echo "linker version: $($LINKER --version | head -1)"
+          echo "PASS"

@@ -1,0 +1,48 @@
+name: Test armv7-unknown-linux-gnueabihf cross toolchain setup
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install Rust toolchain
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --no-modify-path
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+
+      - id: action
+        uses: .
+        with:
+          target: armv7-unknown-linux-gnueabihf
+          runner: none
+
+      - name: Assert CARGO_BUILD_TARGET is set
+        run: |
+          echo "CARGO_BUILD_TARGET: $CARGO_BUILD_TARGET"
+          if [ "$CARGO_BUILD_TARGET" != "armv7-unknown-linux-gnueabihf" ]; then
+            echo "FAIL: expected CARGO_BUILD_TARGET=armv7-unknown-linux-gnueabihf, got '$CARGO_BUILD_TARGET'"
+            exit 1
+          fi
+          echo "PASS"
+
+      - name: Assert cross-compiler linker env var is set
+        run: |
+          echo "CARGO_TARGET_ARMV7_UNKNOWN_LINUX_GNUEABIHF_LINKER: $CARGO_TARGET_ARMV7_UNKNOWN_LINUX_GNUEABIHF_LINKER"
+          if [ -z "$CARGO_TARGET_ARMV7_UNKNOWN_LINUX_GNUEABIHF_LINKER" ]; then
+            echo "FAIL: expected CARGO_TARGET_ARMV7_UNKNOWN_LINUX_GNUEABIHF_LINKER to be set"
+            exit 1
+          fi
+          echo "PASS"
+
+      - name: Assert arm cross-compiler is available
+        run: |
+          LINKER="$CARGO_TARGET_ARMV7_UNKNOWN_LINUX_GNUEABIHF_LINKER"
+          echo "Checking linker: $LINKER"
+          if ! command -v "$LINKER" > /dev/null 2>&1; then
+            echo "FAIL: linker '$LINKER' not found in PATH"
+            exit 1
+          fi
+          echo "linker version: $($LINKER --version | head -1)"
+          echo "PASS"

@@ -1,0 +1,39 @@
+name: Test package input for cross toolchain setup
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install Rust toolchain
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --no-modify-path
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+
+      - id: action
+        uses: .
+        with:
+          target: aarch64-unknown-linux-gnu
+          runner: none
+          package: "file"
+
+      - name: Assert CARGO_BUILD_TARGET is set
+        run: |
+          echo "CARGO_BUILD_TARGET: $CARGO_BUILD_TARGET"
+          if [ "$CARGO_BUILD_TARGET" != "aarch64-unknown-linux-gnu" ]; then
+            echo "FAIL: expected CARGO_BUILD_TARGET=aarch64-unknown-linux-gnu, got '$CARGO_BUILD_TARGET'"
+            exit 1
+          fi
+          echo "PASS"
+
+      - name: Assert package was installed
+        run: |
+          # The 'file' package should have been installed for the aarch64 architecture
+          echo "Checking that 'file' package was installed..."
+          if ! dpkg -l | grep -q 'file'; then
+            echo "FAIL: expected 'file' package to be installed"
+            exit 1
+          fi
+          echo "PASS: 'file' package is installed"
