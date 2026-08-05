@@ -10,6 +10,7 @@ Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at
 |---------|-----|-----------------|
 | v1.39.2 | [`v1.39.2`](https://github.com/chainguard-actions/taiki-e-setup-cross-toolchain-action/tree/v1.39.2) | [`d62f33b`](https://github.com/taiki-e/setup-cross-toolchain-action/commit/d62f33b587e73b0004731caebc7d2d46b18a7567) |
 | v1.40.0 | [`v1.40.0`](https://github.com/chainguard-actions/taiki-e-setup-cross-toolchain-action/tree/v1.40.0) | [`74847e5`](https://github.com/taiki-e/setup-cross-toolchain-action/commit/74847e552ab5bf79fa4393ed975e297ea57d53fa) |
+| v1.41.0 | [`v1.41.0`](https://github.com/chainguard-actions/taiki-e-setup-cross-toolchain-action/tree/v1.41.0) | [`3d9770c`](https://github.com/taiki-e/setup-cross-toolchain-action/commit/3d9770ce98eb7dbcf378563182a5e8031165f75b) |
 
 ## Privacy
 
