@@ -81,7 +81,7 @@ host=$(rustc -vV | grep -E '^host:' | cut -d' ' -f2)
 if [[ "${target}" == "host-tuple" ]]; then
   target="${host}"
 fi
-# Re-sanitize after potential host-tuple substitution (host is from rustc, not user input, but be safe)
+# Re-sanitize after potential host-tuple substitution
 target=$(printf '%s' "${target}" | tr -d '\n\r')
 rustc_version=$(rustc -vV | grep -E '^release:' | cut -d' ' -f2)
 rustc_minor_version="${rustc_version#*.}"
