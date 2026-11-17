@@ -66,14 +66,18 @@ if [[ $# -gt 0 ]]; then
 fi
 
 # Sanitize user-controlled inputs by stripping newlines/carriage returns to
-# prevent GITHUB_ENV injection attacks (CWE-93 / github-env-injection).
-sanitize_input() {
-  printf '%s' "$1" | tr -d '\n\r'
-}
-
-target="$(sanitize_input "${INPUT_TARGET:?}")"
-runner="$(sanitize_input "${INPUT_RUNNER:-}")"
-package="$(sanitize_input "${INPUT_PACKAGE:-}")"
+# prevent GITHUB_ENV injection (values derived from these are written to $GITHUB_ENV).
+target="${INPUT_TARGET:?}"
+target="${target//[$'\r\n']/}"
+runner="${INPUT_RUNNER:-}"
+runner="${runner//[$'\r\n']/}"
+INPUT_QEMU="${INPUT_QEMU:-}"
+INPUT_QEMU="${INPUT_QEMU//[$'\r\n']/}"
+INPUT_VALGRIND="${INPUT_VALGRIND:-}"
+INPUT_VALGRIND="${INPUT_VALGRIND//[$'\r\n']/}"
+INPUT_WINE="${INPUT_WINE:-}"
+INPUT_WINE="${INPUT_WINE//[$'\r\n']/}"
+package="${INPUT_PACKAGE:-}"
 packages=()
 if [[ -n "${package}" ]]; then
   while IFS= read -rd,; do
@@ -253,7 +257,8 @@ install_rust_cross_toolchain() {
     riscv32gc-unknown-linux-gnu) sysroot_dir="${toolchain_dir}/sysroot" ;;
     loongarch64-unknown-linux-gnu)
       sysroot_dir="${toolchain_dir}/target/usr"
-      safe_ld_library_path="$(printf '%s' "${LD_LIBRARY_PATH:-}" | tr -d '\n\r')"
+      safe_ld_library_path="${LD_LIBRARY_PATH:-}"
+      safe_ld_library_path="${safe_ld_library_path//[$'\r\n']/}"
       printf 'LD_LIBRARY_PATH=%s\n' "${toolchain_dir}/target/usr/lib64:${toolchain_dir}/${target}/lib${safe_ld_library_path:+":${safe_ld_library_path}"}" >>"${GITHUB_ENV}"
       ;;
     *) sysroot_dir="${toolchain_dir}/${target}" ;;
@@ -676,7 +681,8 @@ CXX_${target_lower}=${apt_target}-g++
 EOF
                 ;;
             esac
-            safe_pkg_config_path="$(printf '%s' "${PKG_CONFIG_PATH:-}" | tr -d '\n\r')"
+            safe_pkg_config_path="${PKG_CONFIG_PATH:-}"
+            safe_pkg_config_path="${safe_pkg_config_path//[$'\r\n']/}"
             cat >>"${GITHUB_ENV}" <<EOF
 AR_${target_lower}=${apt_target}-ar
 RANLIB_${target_lower}=${apt_target}-ranlib
@@ -832,7 +838,7 @@ EOF
                   *) bail "unrecognized runner '${runner}'" ;;
                 esac
                 _sudo cp -- "${wine_root}"/lib/ld-linux-aarch64.so.1 /lib/
-                qemu_version="$(sanitize_input "${INPUT_QEMU:-"${default_qemu_version}"}")"
+                qemu_version="${INPUT_QEMU:-"${default_qemu_version}"}"
                 install_qemu
                 x "${wine_exe}" --version
                 wineboot="${wine_root}/bin/wineserver"
@@ -846,7 +852,7 @@ EOF
                 version_id=$(grep -E '^VERSION_ID=' /etc/os-release | cut -d= -f2)
                 version_id="${version_id//\"/}"
                 case "${runner}" in
-                  '' | wine) wine_version="$(sanitize_input "${INPUT_WINE:-"${default_wine_version}"}")" ;;
+                  '' | wine) wine_version="${INPUT_WINE:-"${default_wine_version}"}" ;;
                   wine@*) wine_version="${runner#*@}" ;;
                   *) bail "unrecognized runner '${runner}'" ;;
                 esac
@@ -1118,8 +1124,8 @@ case "${host}" in
   *-linux-gnu*)
     use_qemu=''
     use_valgrind=''
-    qemu_version="$(sanitize_input "${INPUT_QEMU:-"${default_qemu_version}"}")"
-    valgrind_version="$(sanitize_input "${INPUT_VALGRIND:-"${default_valgrind_version}"}")"
+    qemu_version="${INPUT_QEMU:-"${default_qemu_version}"}"
+    valgrind_version="${INPUT_VALGRIND:-"${default_valgrind_version}"}"
     case "${target}" in
       *-linux-* | *-android*)
         case "${runner}" in
