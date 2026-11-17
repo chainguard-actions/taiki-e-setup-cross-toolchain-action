@@ -36,7 +36,7 @@ normalize_comma_or_space_separated() {
   else
     # Otherwise, consider it is a whitespace-separated list.
     # Convert whitespace characters into comma.
-    sed -E 's/ +/,/g; s/^.//' <<< " ${list} "
+    sed -E 's/ +/,/g; s/^.//' <<<" ${list} "
   fi
 }
 _sudo() {
@@ -69,6 +69,7 @@ target="${INPUT_TARGET:?}"
 # Sanitize target to prevent newline injection into GITHUB_ENV/GITHUB_PATH
 target=$(printf '%s' "${target}" | tr -d '\n\r')
 runner="${INPUT_RUNNER:-}"
+runner=$(printf '%s' "${runner}" | tr -d '\n\r')
 package="${INPUT_PACKAGE:-}"
 packages=()
 if [[ -n "${package}" ]]; then
@@ -250,7 +251,7 @@ install_rust_cross_toolchain() {
     loongarch64-unknown-linux-gnu)
       sysroot_dir="${toolchain_dir}/target/usr"
       safe_ld_library_path=$(printf '%s' "${LD_LIBRARY_PATH:-}" | tr -d '\n\r')
-      printf 'LD_LIBRARY_PATH=%s\n' "${toolchain_dir}/target/usr/lib64:${toolchain_dir}/${target}/lib${safe_ld_library_path:+\":${safe_ld_library_path}\"}" >>"${GITHUB_ENV}"
+      printf 'LD_LIBRARY_PATH=%s\n' "${toolchain_dir}/target/usr/lib64:${toolchain_dir}/${target}/lib${safe_ld_library_path:+":${safe_ld_library_path}"}" >>"${GITHUB_ENV}"
       ;;
     *) sysroot_dir="${toolchain_dir}/${target}" ;;
   esac
