@@ -1,6 +1,11 @@
 {
   "owner": "taiki-e",
   "repo": "setup-cross-toolchain-action",
-  "version": "",
-  "url": "https://github.com/taiki-e/setup-cross-toolchain-action"
+  "version": "v1.43.0",
+  "commit_sha": "be174937b799f896bac421e9f8250f4fff986a3c",
+  "url": "https://github.com/taiki-e/setup-cross-toolchain-action",
+  "policy_sha": "374911c4be584df24e6da57af2d990570ef0f859",
+  "test_policy_sha": "843adf9e4b8f85d0c08b27b9d0b09dd094b54702",
+  "test_agent_version": "2",
+  "harden_agent_version": "2"
 }
