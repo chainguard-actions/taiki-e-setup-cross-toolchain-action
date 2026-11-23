@@ -13,6 +13,7 @@ Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at
 | v1.40.1 | [`v1.40.1`](https://github.com/chainguard-actions/taiki-e-setup-cross-toolchain-action/tree/v1.40.1) | [`1293612`](https://github.com/taiki-e/setup-cross-toolchain-action/commit/129361238c06ff2cc1c4ca5c5d2217af441ffdf6) | [`HARDENING.md`](https://github.com/chainguard-actions/taiki-e-setup-cross-toolchain-action/blob/v1.40.1/HARDENING.md) |
 | v1.41.0 | [`v1.41.0`](https://github.com/chainguard-actions/taiki-e-setup-cross-toolchain-action/tree/v1.41.0) | [`3d9770c`](https://github.com/taiki-e/setup-cross-toolchain-action/commit/3d9770ce98eb7dbcf378563182a5e8031165f75b) | [`HARDENING.md`](https://github.com/chainguard-actions/taiki-e-setup-cross-toolchain-action/blob/v1.41.0/HARDENING.md) |
 | v1.42.0 | [`v1.42.0`](https://github.com/chainguard-actions/taiki-e-setup-cross-toolchain-action/tree/v1.42.0) | [`12b7ad4`](https://github.com/taiki-e/setup-cross-toolchain-action/commit/12b7ad4acfa95a1476779d6c06699b96ec1691f8) | [`HARDENING.md`](https://github.com/chainguard-actions/taiki-e-setup-cross-toolchain-action/blob/v1.42.0/HARDENING.md) |
+| v1.43.0 | [`v1.43.0`](https://github.com/chainguard-actions/taiki-e-setup-cross-toolchain-action/tree/v1.43.0) | [`be17493`](https://github.com/taiki-e/setup-cross-toolchain-action/commit/be174937b799f896bac421e9f8250f4fff986a3c) | [`HARDENING.md`](https://github.com/chainguard-actions/taiki-e-setup-cross-toolchain-action/blob/v1.43.0/HARDENING.md) |
 
 ## Privacy
 
